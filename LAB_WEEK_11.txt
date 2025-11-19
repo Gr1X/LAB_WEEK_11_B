@@ -1,0 +1,46 @@
+Answer these questions based on Part 3 of the tutorial: 
+1. When a user takes a picture, that picture is stored in a path based on the given URI. In which part of the code handles this? (Copy that part of the code as the answer) 
+
+Jawaban: 
+Fungsi yang menangani pembuatan objek file di path yang benar dan mengembalikannya dalam bentuk URI melalui FileProvider untuk digunakan oleh aplikasi kamera adalah generatePhotoUri di dalam kelas ProviderFileManager:
+
+fun generatePhotoUri (time: Long): FileInfo {
+    val name = "img_\$time.jpg"
+    // Get the file object
+    // The file will be stored in the folder defined in
+    // file_provider_paths.xml
+    val file File(
+        context.getExternalFilesDir(fileHelper.getPicturesFolder()),
+        name
+    )
+    return FileInfo(
+        fileHelper.getUriFromFile(file),
+        file,
+        name,
+        fileHelper.getPictures Folder(),
+        "image/jpeg"
+    )
+}
+
+
+2. In your FileInfo.kt, there are 5 attributes. On the first attribute, what does the URI refer to? And on the fourth attribute, what does relativePath refer to? 
+Jawaban: 
+
+URI (uri): Merujuk pada Content URI yang dihasilkan oleh FileProvider. URI ini adalah identitas sementara yang diberikan kepada file yang disimpan di lokasi privat aplikasi (ExternalFilesDir). URI ini diteruskan ke aplikasi kamera untuk menentukan di mana hasil tangkapan harus disimpan.
+
+relativePath: Merujuk pada folder sub-direktori tempat file media akan disimpan di MediaStore (yaitu, lokasi yang dapat diakses publik). Untuk gambar, ini adalah folder Environment.DIRECTORY_PICTURES
+
+
+3. [Bonus] Explain the chronological order from when a user takes a picture until the file is stored in the MediaStore.	
+
+Jawaban: 
+Aksi Pengguna & Pengecekan Izin: Pengguna menekan tombol Photo di MainActivity.kt, yang memicu fungsi checkStoragePermission. Jika izin sudah OK, ia memanggil openImageCapture.
+Pembuatan File Sementara & URI: Fungsi openImageCapture memanggil providerFileManager.generatePhotoUri().
+Fungsi ini membuat objek File baru di lokasi Penyimpanan Internal Spesifik Aplikasi (context.getExternalFilesDir(...)) .
+Kemudian, ia menghasilkan Content URI untuk file sementara ini menggunakan FileProvider.getUriForFile di FileHelper.kt.
+Aktivasi Kamera: URI sementara ini diteruskan ke takePictureLauncher.launch(photoInfo!!.uri). Ini meluncurkan aplikasi kamera bawaan perangkat dan menginstruksikannya untuk menyimpan gambar hasil tangkapan ke file yang ditunjuk oleh URI tersebut.
+Callback Hasil Kamera: Setelah pengguna mengambil foto dan kembali ke aplikasi, callback dari takePictureLauncher dieksekusi.
+Penyalinan ke MediaStore (Penyimpanan Permanen): Callback memanggil providerFileManager.insertImageToStore(photoInfo).
+Fungsi ini membuat entri baru di MediaStore menggunakan ContentResolver.insert() dengan ContentValues yang berisi nama file dan relativePath.
+File media disalin dari lokasi sementara (URI FileProvider) ke URI MediaStore yang baru dibuat menggunakan ContentResolver.openInputStream dan ContentResolver.openOutputStream , dibantu oleh IOUtils.copy.
+File Selesai: Setelah penyalinan selesai, file kini disimpan secara permanen di MediaStore dan dapat diakses oleh aplikasi Gallery atau file manager lain.
